@@ -1,0 +1,31 @@
+version: 0.2
+
+env:
+  variables:
+    PACKAGIST_AUTH_TOKEN: "547e84eee2f7d046ae593f4aa1827492e0fa6529511344f228bbf56ec128"
+phases:
+  install:
+    runtime-versions:
+      nodejs: 10
+  pre_build:
+    commands:
+      - echo Logging in to Amazon ECR...
+      - $(aws ecr get-login --no-include-email --region $AWS_DEFAULT_REGION)
+  build:
+    commands:
+      - echo Build started on `date`
+      - echo Building the Docker image...
+      - docker build --build-arg PACKAGIST_AUTH_TOKEN=$PACKAGIST_AUTH_TOKEN -f docker/Dockerfile -t $IMAGE_REPO_NAME:$CODEBUILD_RESOLVED_SOURCE_VERSION$CODEBUILD_BUILD_NUMBER .
+      - docker tag $IMAGE_REPO_NAME:$CODEBUILD_RESOLVED_SOURCE_VERSION$CODEBUILD_BUILD_NUMBER $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME:$CODEBUILD_RESOLVED_SOURCE_VERSION$CODEBUILD_BUILD_NUMBER
+  post_build:
+    commands:
+      - echo Build completed on `date`
+      - echo Pushing the Docker image..
+      - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME:$CODEBUILD_RESOLVED_SOURCE_VERSION$CODEBUILD_BUILD_NUMBER
+      - printf $IMAGE_REPO_NAME:$CODEBUILD_RESOLVED_SOURCE_VERSION$CODEBUILD_BUILD_NUMBER > container-tag.txt
+      - printf $IMAGE_REPO_NAME:latest > container-tag-latest.txt
+artifacts:
+  files:
+    - container-tag.txt
+    - container-tag-latest.txt
+    - buildspec-push-to-production.yml

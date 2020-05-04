@@ -1,0 +1,68 @@
+version: '3.7'
+networks:
+  app-tier:
+    driver: bridge
+services:
+  app:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.dev
+      args:
+        PACKAGIST_AUTH_TOKEN: 11f4a68f84ffaf8b07b903a43e80e4af4ca9e2e1d4785097da92d0f31638
+    restart: unless-stopped
+    ports:
+      - "9000:80"
+    environment:
+      APP_DEBUG: "true"
+      APP_NAME: "Feedback service"
+      APP_ENV: local
+      DB_HOST: database
+      DB_DATABASE: homestead
+      DB_USERNAME: homestead
+      DB_PASSWORD: secret
+      BROADCAST_DRIVER: log
+      MACHINE_CLIENT_ID: 41
+      MACHINE_SECRET: IEaHF26zdAzT6nLtViov2xmDHvkM3fSJ08wTuSZZ
+      CACHE_DRIVER: redis
+      REDIS_HOST: redis
+      QUEUE_CONNECTION: null
+      APP_KEY: base64:C7MIet4WJgDP91aY3BcrSDhcsIH7Jd92FV3CwrktDUo=
+      APP_URL: "http://localhost:9000"
+      WAIT_HOSTS: database:3306
+    working_dir: /var/www/html
+    volumes:
+      - ./:/var/www/html:cached
+      - /var/www/html/vendor/
+      - /dev/null:/bootstrap/cache
+      - /dev/null:/vendor
+      - /dev/null:/node_modules
+      - /dev/null:/public/dist
+    links:
+      - redis:cache
+      - database
+    depends_on:
+      - database
+      - redis
+    networks:
+      - app-tier
+  redis:
+    image: redis:4-alpine
+    networks:
+      - app-tier
+    ports:
+      - 16379:6379
+  database:
+    image: mysql:8.0.18
+    command: --default-authentication-plugin=mysql_native_password
+    ports:
+      - 13306:3306
+    environment:
+      MYSQL_DATABASE: homestead
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_USER: homestead
+      MYSQL_PASSWORD: secret
+    networks:
+      - app-tier
+volumes:
+  mysql:
+    driver: "local"
